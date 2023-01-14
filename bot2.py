@@ -4,7 +4,9 @@ from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTyp
 import sqlite3
 
 # havent link the db shit
-data={"orderer":{"name":"food"}}
+data={}
+
+ORDERS_OPEN = False
 
 logging.basicConfig(
 	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -16,10 +18,14 @@ async def startorder(update: Update, context: ContextTypes.DEFAULT_TYPE):
 	await context.bot.send_message(
 		chat_id=update.effective_chat.id,
 		text="Order has been set up")
+	global ORDERS_OPEN
+	ORDERS_OPEN = True
 	data[user.first_name]={}
 	return ConversationHandler.END
 
 async def choosestall(update: Update, context: ContextTypes.DEFAULT_TYPE):
+	if not ORDERS_OPEN:
+		return cancel
 	reply_keyboard = [["Stall 1", "Other"]]
 	await context.bot.send_message(chat_id=update.effective_chat.id,
 		text="Which stall?",
@@ -28,11 +34,8 @@ async def choosestall(update: Update, context: ContextTypes.DEFAULT_TYPE):
 	return choosedish
 	
 async def choosedish(update: Update, context: ContextTypes.DEFAULT_TYPE):
-	reply_keyboard = [["dish 1", "dish2"]]
 	await context.bot.send_message(chat_id=update.effective_chat.id,
-		text="What would you like to order?",
-		reply_markup=ReplyKeyboardMarkup(
-			reply_keyboard,one_time_keyboard=True,input_field_placeholder="What would you like to order?"))
+		text="What would you like to order?")
 	return confirmation
 
 async def confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE)
@@ -48,7 +51,7 @@ async def end(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 	user=update.message.from_user
-	logger.info("User %s canceled the conversation.", user.first_name)
+	logger.info("User %s canceled the order.", user.first_name)
 	await update.message.reply_text(
 		"Bye",reply_markup=ReplyKeyboardRemove())
 	return ConversationHandler.END
